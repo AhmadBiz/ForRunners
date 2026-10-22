@@ -49,6 +49,15 @@ keyboard+mouse handlers and the touch controls.
 `window.__house` — debug/automation API (`teleport`, `goToWindow`, `setCovering`, `setMode`, `start`, `state`, `player`, `windows`),
 used by `scripts/screenshot.mjs`.
 
+## Installation standard (MyKurtains)
+
+Curtains and sheers are **always ceiling-mounted track systems with ripple-fold (wave) panels**: a slim aluminium
+channel fixed flush to the ceiling (a double track when a sheer layer is added: sheer behind, drape in front), the
+fabric hangs from carriers via snap tape so the top edge is the same continuous S-wave as the rest of the panel
+(no pleated header, no rod, no rings, no finials), uniform wave depth from top to hem, floor length (hem ≈ 1 cm
+above the floor), and the stack-back is compact and regular at each side when drawn open. `coverings/Curtains.tsx`
+and `coverings/Sheers.tsx` must model exactly this.
+
 ## Scene composition (`src/scene`)
 
 `Scene.tsx` wires: `<Sky>` + fog + `<Lighting>` + `<Exterior>` + `<House>` + `<WindowMeshes>` + `<Furniture>` + (`<Player>` | `<OrbitView>`).
