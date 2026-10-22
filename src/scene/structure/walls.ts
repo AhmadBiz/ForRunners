@@ -3,7 +3,7 @@ import { LEVEL_BY_ID, WALL_GEOMS, levelForY, pointInLevelOutline, roomAt } from 
 import type { WallGeom } from '../../data/geometry';
 import type { Level, LevelId, WallDef } from '../../data/types';
 import { addBox, frameMatrix } from './bucket';
-import type { BoxKeys, BucketSet, FaceId } from './bucket';
+import type { BoxKeys, BucketSet } from './bucket';
 import { K, paintKey } from './keys';
 
 /**
@@ -414,6 +414,3 @@ export function addWalls(sets: Record<LevelId, BucketSet>): void {
     }
   }
 }
-
-// Keep the FaceId import meaningful for the key assignment helper above.
-export type { FaceId as WallFaceId };
