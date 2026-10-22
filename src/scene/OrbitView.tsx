@@ -10,7 +10,7 @@ import { useThree } from '@react-three/fiber';
 import { useStore } from '../store/useStore';
 
 const TARGET: [number, number, number] = [6, 1.5, 5];
-const START: [number, number, number] = [-10, 20, 22];
+const START: [number, number, number] = [-8, 15, 17];
 
 function isEditable(target: EventTarget | null): boolean {
   const el = target as HTMLElement | null;

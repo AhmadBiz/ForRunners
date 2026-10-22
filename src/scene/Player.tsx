@@ -36,7 +36,7 @@ const BOB_AMPLITUDE = 0.015; // m
 const RAYCAST_EVERY = 3;
 const LEVEL_EVERY = 10;
 
-const EXIT_LOCK_PANELS: ReadonlySet<Panel> = new Set<Panel>(['covering', 'windows', 'help', 'settings']);
+const EXIT_LOCK_PANELS: ReadonlySet<Panel> = new Set<Panel>(['covering', 'windows', 'help', 'settings', 'map']);
 const NDC_CENTRE = new THREE.Vector2(0, 0);
 
 type MoveKey = 'f' | 'b' | 'l' | 'r';
@@ -155,6 +155,10 @@ export function Player() {
     sim.bobAmount = 0;
     applyCamera(camera);
     camera.updateMatrixWorld();
+    // Refresh the storey now rather than on the next LEVEL_EVERY tick (the HUD/minimap would lag).
+    const s = useStore.getState();
+    const lvl = currentLevel(playerState.x, playerState.z, groundHeightAt(playerState.x, playerState.z, playerState.y));
+    if (lvl !== s.level) s.setLevel(lvl);
   }, [teleport, camera, sim]);
 
   // Release the pointer lock when a panel that needs the mouse opens (no automatic re-lock).
