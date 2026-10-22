@@ -7,9 +7,10 @@
  *     plus a divider rail on panels taller than 1.3 m) holding 6.3 cm louvres at a 6.3 cm pitch
  *     and a tilt rod attached to the louvres' front edges (it rides up / down as they tilt),
  *   - `tilt` rotates every louvre about X by tilt × 85°,
- *   - `open` swings each outer panel about its hinge on the jamb into the room by open × 100°;
- *     a bi-fold's inner panel folds back onto the outer one (open × 180°) as the pair swings,
- *     so at open = 1 both lie stacked face to face beside the jamb,
+ *   - `open` swings each outer panel about its hinge on the jamb into the room by open × 100°.
+ *     A bi-fold pair swings to open × 90° while the inner panel folds back by twice that angle,
+ *     which keeps its free end sliding along the head track (the wall plane) exactly like the
+ *     real mechanism; at open = 1 both panels stand stacked face to face beside the jamb,
  *   - dark hinge knuckles on every hinged edge.
  *
  * Rendering: four InstancedMeshes for the whole window — frames (one merged geometry per
@@ -173,8 +174,9 @@ export function Shutters(props: CoveringProps) {
 
   // ---- instance matrices ----------------------------------------------------------------------
   useLayoutEffect(() => {
-    const swing = open * SWING_MAX;
-    const fold = open * Math.PI;
+    // A bi-fold is track-guided: the pair swings to 90° while the inner panel folds by 2 × swing.
+    const swing = open * (bifold ? Math.PI / 2 : SWING_MAX);
+    const fold = 2 * swing;
     const tiltA = tilt * TILT_MAX;
     let fi = 0;
     let li = 0;

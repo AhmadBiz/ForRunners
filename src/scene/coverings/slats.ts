@@ -37,6 +37,18 @@ export function clearOpening(width: number, height: number): { innerW: number; i
   return { innerW, innerH, innerTop: innerH / 2, innerBottom: -innerH / 2 };
 }
 
+/**
+ * Room-side face of the deepest frame member that protrudes into the reveal: the central
+ * mullion of wide windows (0.7 × wall thickness, centred on the wall → z = −0.3 × reveal). The
+ * 60 % horizontal rail (0.5 × t) reaches z = −0.5 × reveal. Inside-mounted blinds hang in front
+ * of both so neither bar ever shows through the slats / fabric. (Proportions from
+ * ../windows/geometry.ts `windowWoodwork`.)
+ */
+export const mullionFrontZ = (reveal: number) => -0.3 * Math.max(0.02, finite(reveal, 0.1));
+
+/** Centre z of an inside-mounted part of the given depth: as deep in the reveal as the mullion allows. */
+export const insideMountZ = (reveal: number, depth: number) => mullionFrontZ(reveal) + 0.003 + depth / 2;
+
 // ---------------------------------------------------------------------------------------------
 // Resource lifecycle
 // ---------------------------------------------------------------------------------------------

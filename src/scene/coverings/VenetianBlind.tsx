@@ -1,5 +1,6 @@
 /**
- * VENETIAN BLIND — inside mount, half-way into the reveal (z = -reveal / 2).
+ * VENETIAN BLIND — inside mount, in the reveal just in front of the frame's central mullion
+ * (so neither the mullion nor the 60 % rail of the frame ever shows between the slats).
  *
  *   - a headrail box just under the head of the frame,
  *   - horizontal slats as ONE InstancedMesh: 2.5 cm pitch / depth for the aluminium colours
@@ -31,6 +32,7 @@ import {
   commitInstances,
   finite,
   grainBox,
+  insideMountZ,
   makeSlatMaterial,
   setInstance,
   useDisposable,
@@ -72,9 +74,10 @@ export function VenetianBlind(props: CoveringProps) {
   const slatT = wood ? 0.003 : 0.001;
   const stackPitch = wood ? 0.0045 : 0.002;
   const slatW = Math.max(0.02, innerW - 0.01);
-  const z = -Math.max(0.02, finite(props.reveal, 0.1)) * 0.5;
   const railH = wood ? 0.05 : 0.04;
   const railD = wood ? 0.055 : 0.03;
+  // Headrail and slats share one depth; the headrail (the deepest part) sits just in front of the mullion.
+  const z = insideMountZ(props.reveal, railD);
   const railY = innerTop - railH / 2 - 0.002;
   const railBottom = railY - railH / 2;
 
