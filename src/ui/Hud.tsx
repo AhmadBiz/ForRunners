@@ -11,10 +11,14 @@
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { LEVEL_BY_ID, LEVEL_ORDER, WINDOW_BY_ID } from '../data/geometry';
+import { HOUSE_META } from '../data/house';
 import type { LevelId } from '../data/types';
 import { playerState, useStore, useT } from '../store/useStore';
 import type { Lang } from '../store/useStore';
 import './hud.css';
+
+/** True when the app is served from the multi-house site (base = /houses/<id>/), where '/' lists every house. */
+const IS_MULTI_HOUSE_SITE = import.meta.env.BASE_URL !== '/';
 
 // ------------------------------------------------------------------------------------------------
 // Icons (inline SVG, stroke = currentColor). Exported so the intro overlay can reuse them.
@@ -187,8 +191,13 @@ function TopBar() {
     <header className="hud-top">
       <div className="hud-chip hud-left">
         <div className="hud-title">
+          {IS_MULTI_HOUSE_SITE && (
+            <a className="hud-back" href="/" title={t('Toutes les maisons', 'All houses')} aria-label={t('Toutes les maisons', 'All houses')}>
+              ←
+            </a>
+          )}
           <IconHouse />
-          <span>Maison 3D</span>
+          <span>{HOUSE_META.name}</span>
           <span className="hud-title-sub">· {t('Habillage de fenêtres', 'Window coverings')}</span>
         </div>
         <LevelPills active={level} onPick={goToLevel} lang={lang} />

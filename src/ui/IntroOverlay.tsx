@@ -4,6 +4,7 @@
  * and a FR/EN toggle. Hidden entirely once the visit has started.
  */
 import { useStore, useT } from '../store/useStore';
+import { HOUSE_META } from '../data/house';
 import { IconDollhouse, IconHouse, IconKeys, IconMouse, IconTarget, IconTouch, IconWalk } from './Hud';
 import './hud.css';
 
@@ -48,10 +49,17 @@ export function IntroOverlay() {
         <div className="intro-glyph">
           <IconHouse />
         </div>
-        <p className="intro-eyebrow">{t('Visite immersive', 'Immersive tour')}</p>
+        <p className="intro-eyebrow">
+          {import.meta.env.BASE_URL !== '/' && (
+            <a className="intro-back" href="/">
+              ← {t('Toutes les maisons', 'All houses')}
+            </a>
+          )}
+          {t('Visite immersive', 'Immersive tour')}
+        </p>
         <h1>
-          Maison 3D
-          <small>{t('Habillage de fenêtres', 'Window coverings')}</small>
+          {HOUSE_META.name}
+          <small>{HOUSE_META.address}</small>
         </h1>
         <p className="intro-desc">
           {t(
