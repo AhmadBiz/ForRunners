@@ -12,7 +12,7 @@
  *                                      — only the listed shots (comma-separated base names); every other
  *                                        view is skipped (the covering changes are still applied in order).
  *
- * Under SwiftShader a frame of the realism build takes several seconds (4096 shadow map, 35 lights,
+ * Under SwiftShader a frame of the realism build takes several seconds (4096 shadow map, 37 lights,
  * post-processing), hence the long timeouts and the initial settle before the first shot.
  *
  * Exit code 1 when a page error or console error occurred (software-WebGL warnings are ignored).
@@ -188,10 +188,9 @@ async function main() {
     };
     const shot = async (name, assessment = '') => {
       const file = join(OUT, `${name}.png`);
-      const t0 = Date.now();
-      await page.screenshot({ path: file, timeout: OP_TIMEOUT });
-      screenshots.push(`screenshots/${name}.png`);
-      // per-frame draw calls / triangles, averaged over the settle frames (window.__house.gl is set by Scene.tsx)
+      // per-frame draw calls / triangles, averaged over the settle frames (window.__house.gl is set by
+      // Scene.tsx). Read BEFORE the screenshot: page.screenshot waits for fresh frames, and with
+      // autoReset off those would be accumulated too and inflate the per-frame estimate several-fold.
       const info = await page.evaluate((n) => {
         const info = window.__house?.gl?.info;
         if (!info) return 'n/a';
@@ -200,6 +199,9 @@ async function main() {
         info.autoReset = true;
         return s;
       }, SETTLE_FRAMES);
+      const t0 = Date.now();
+      await page.screenshot({ path: file, timeout: OP_TIMEOUT });
+      screenshots.push(`screenshots/${name}.png`);
       console.log(`  shot ${name}.png (${((Date.now() - t0) / 1000).toFixed(1)} s, ${info})${assessment ? ' — ' + assessment : ''}`);
     };
     const api = (fn, ...args) => page.evaluate(([f, a]) => new Function('a', `return (${f})(window.__house, ...a)`)(a), [fn, args]);
