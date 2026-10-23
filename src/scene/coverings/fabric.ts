@@ -345,7 +345,7 @@ export const WAVE_PERIOD = 0.12;
 export const TRACK_W = 0.024;
 export const TRACK_H = 0.016;
 /** Carrier (glider) under the channel: a 1 cm snap button; the fabric's top edge hangs `drop` below the channel. */
-export const GLIDER = { w: 0.01, h: 0.008, d: 0.008, drop: 0.012 };
+export const GLIDER = { w: 0.01, h: 0.008, d: 0.008, drop: 0.008 }; // drop = h: the fabric top meets the carriers
 /** Width of the stack each panel compresses into when fully drawn back (≈ 18 % of the window, ≥ 30 cm). */
 export const stackBackFor = (width: number) => Math.max(0.3, 0.18 * width);
 /** How far an end cap reaches past the end of the track body (see buildTrack). */
