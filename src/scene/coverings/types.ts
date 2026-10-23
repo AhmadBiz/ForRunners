@@ -29,6 +29,20 @@ export interface CoveringProps {
    * y = ceiling − sill − height / 2.
    */
   ceiling: number;
+  /**
+   * Free run along the wall from the left (−X) and right (+X) edge of the opening to the nearest
+   * obstruction beside it at track height — a perpendicular wall's face less its crown moulding,
+   * or a fixture — with a 1 cm margin (m; may be negative when a wall or its crown overlaps the
+   * opening's edge). Ceiling tracks stop there instead of running a full stack-back past the edge.
+   * Omitted = unobstructed.
+   */
+  sideRoom?: [number, number];
+  /**
+   * Lowest height above the floor the fabric's hem may hang at (m): set where a counter, a tub or
+   * a stair stands under the window, so floor-length fabric stops just above it. Omitted = floor
+   * length (hem 1 cm above the floor).
+   */
+  hemAbove?: number;
 }
 
 /** Local y of the floor relative to the opening centre. */
