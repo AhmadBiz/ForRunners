@@ -197,9 +197,20 @@ async function main() {
       console.log(`  shot ${name}.png (${((Date.now() - t0) / 1000).toFixed(1)} s, ${info})${assessment ? ' — ' + assessment : ''}`);
     };
     const api = (fn, ...args) => page.evaluate(([f, a]) => new Function('a', `return (${f})(window.__house, ...a)`)(a), [fn, args]);
-    // The scene mounts under <Suspense>; wait until the loading fallback is gone and a frame rendered.
+    // The scene mounts under its own <Suspense fallback={null}> (textures + HDRI), independent of the
+    // HUD's `.lf` spinner: wait for the HUD, then for the scene graph to exist (Scene.tsx sets
+    // window.__house.scene once it is mounted) and for a frame that actually drew it (info.render
+    // .calls is the last frame's draw-call count; an empty scene draws nothing and the shot is blank).
     const waitForScene = async () => {
       await page.waitForFunction(() => !document.querySelector('.lf'), null, { timeout: OP_TIMEOUT });
+      await page.waitForFunction(
+        () => {
+          const h = window.__house;
+          return !!h?.scene && h.scene.children.length > 5 && (h.gl?.info?.render?.calls ?? 0) > 0;
+        },
+        null,
+        { timeout: OP_TIMEOUT, polling: 500 },
+      );
       await frames(2);
     };
 

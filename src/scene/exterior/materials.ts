@@ -110,7 +110,8 @@ export function useLeaf(): THREE.MeshStandardMaterial {
   const speckle = useMemo(() => leafSpeckleTexture(), []);
   const m = useMemo(
     () =>
-      new THREE.MeshStandardMaterial({ color: '#ffffff', vertexColors: true, map: speckle.map, normalMap: set.normalMap, roughnessMap: set.roughnessMap, normalScale: set.normalScale, roughness: 0.9, envMapIntensity: 1.8 }),
+      // emissiveMap × 0.12: the same translucency term as the leaf cards, weaker on the solid crown.
+      new THREE.MeshStandardMaterial({ color: '#ffffff', vertexColors: true, map: speckle.map, normalMap: set.normalMap, roughnessMap: set.roughnessMap, normalScale: set.normalScale, roughness: 0.9, envMapIntensity: 1.8, emissive: '#ffffff', emissiveMap: speckle.map, emissiveIntensity: 0.12 }),
     [set, speckle],
   );
   useEffect(
@@ -133,7 +134,9 @@ export function useLeafCards(): THREE.MeshStandardMaterial {
   const tex = useMemo(() => leafCardTexture(), []);
   const m = useMemo(
     () =>
-      new THREE.MeshStandardMaterial({ color: '#ffffff', vertexColors: true, map: tex, alphaTest: 0.5, side: THREE.DoubleSide, shadowSide: THREE.FrontSide, roughness: 0.9, envMapIntensity: 1.8 }),
+      // emissive = 22 % of the card's own albedo: a cheap translucency term so back-lit cards (the
+      // whole rear garden faces away from the sun) read as dark green leaves instead of black blades.
+      new THREE.MeshStandardMaterial({ color: '#ffffff', vertexColors: true, map: tex, alphaTest: 0.5, side: THREE.DoubleSide, shadowSide: THREE.FrontSide, roughness: 0.9, envMapIntensity: 1.8, emissive: '#ffffff', emissiveMap: tex, emissiveIntensity: 0.22 }),
     [tex],
   );
   useEffect(
