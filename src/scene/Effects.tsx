@@ -42,12 +42,15 @@ const AO_DISTANCE_FALLOFF = 0.6;
 export function Effects() {
   const quality = useStore((s) => s.quality);
   const orbit = useStore((s) => s.mode) === 'orbit';
+  // Half-resolution AO misses occlusion at the narrow depth steps between ripple folds and leaves
+  // bright dashed lines along them, so desktops render AO at full resolution; phones keep half.
+  const halfRes = useStore((s) => s.isTouch);
   if (quality !== 'high') return null;
   return (
     <EffectComposer multisampling={0} enableNormalPass={false}>
       {/* 'medium' = 16 AO samples, 8 denoise samples at radius 12: enough to hide the
-          interleaved-gradient dot lattice on plain walls while staying half-resolution. */}
-      <N8AO ref={linearN8ao} aoRadius={orbit ? AO_RADIUS_ORBIT : AO_RADIUS_WALK} intensity={AO_INTENSITY} distanceFalloff={AO_DISTANCE_FALLOFF} quality="medium" halfRes depthAwareUpsampling />
+          interleaved-gradient dot lattice on plain walls. */}
+      <N8AO ref={linearN8ao} aoRadius={orbit ? AO_RADIUS_ORBIT : AO_RADIUS_WALK} intensity={AO_INTENSITY} distanceFalloff={AO_DISTANCE_FALLOFF} quality="medium" halfRes={halfRes} depthAwareUpsampling />
       <SMAA />
       <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
       <Vignette eskil={false} offset={0.3} darkness={0.15} />
