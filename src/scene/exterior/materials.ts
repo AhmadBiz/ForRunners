@@ -307,7 +307,7 @@ export interface PlankTextures {
 }
 
 /** weathered_brown_planks averages ~0.10 linear; real weathered cedar is 0.25–0.30 (silver-brown). */
-const PLANK_GAIN = 2.6;
+const PLANK_GAIN = 2.3;
 const PLANK_CHROMA = 0.7;
 
 /**

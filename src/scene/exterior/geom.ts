@@ -92,12 +92,16 @@ export class TriangleSoup {
 
   /** Adds a triangle with explicit UVs, flipping its winding so the face normal agrees with `want`. */
   triUV(a: Vec3, b: Vec3, c: Vec3, ua: Vec2, ub: Vec2, uc: Vec2, want: Vec3): void {
-    this.triUVC(a, b, c, ua, ub, uc, this.color, this.color, this.color, want);
+    this.emit(a, b, c, ua, ub, uc, this.color, this.color, this.color, want);
   }
 
   /** As triUV, with a colour per vertex (linear RGB; enables the colour attribute). */
   triUVC(a: Vec3, b: Vec3, c: Vec3, ua: Vec2, ub: Vec2, uc: Vec2, ca: Vec3, cb: Vec3, cc: Vec3, want: Vec3): void {
     this.useColor = true;
+    this.emit(a, b, c, ua, ub, uc, ca, cb, cc, want);
+  }
+
+  private emit(a: Vec3, b: Vec3, c: Vec3, ua: Vec2, ub: Vec2, uc: Vec2, ca: readonly [number, number, number], cb: readonly [number, number, number], cc: readonly [number, number, number], want: Vec3): void {
     const ux = b[0] - a[0];
     const uy = b[1] - a[1];
     const uz = b[2] - a[2];
