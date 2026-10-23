@@ -284,7 +284,9 @@ function createResolver(t: Sets): FurnitureMaterials {
   const std = (p: THREE.MeshStandardMaterialParameters) => new THREE.MeshStandardMaterial({ envMapIntensity: ENV, ...p });
   const phys = (p: THREE.MeshPhysicalMaterialParameters) => new THREE.MeshPhysicalMaterial({ envMapIntensity: ENV, ...p });
   /** Spread of a PBR set with its own normalScale vector (the set's is shared). */
-  const pbr = (s: PbrSet, normalScale: number) => ({ map: s.map, normalMap: s.normalMap, roughnessMap: s.roughnessMap, normalScale: new THREE.Vector2(normalScale, normalScale) });
+  // `s.props` holds only the maps the set has (linen / velvet have no colour map; an explicit
+  // `map: undefined` makes three warn on every material constructed from them).
+  const pbr = (s: PbrSet, normalScale: number) => ({ ...s.props, normalScale: new THREE.Vector2(normalScale, normalScale) });
   const canvasTex = (tex: THREE.CanvasTexture) => {
     canvases.push(tex);
     return tex;
@@ -399,7 +401,23 @@ function createResolver(t: Sets): FurnitureMaterials {
       case 'steel':
         return phys({ color: '#c9ccd0', roughness: 0.35, metalness: 0.9, anisotropy: 0.6, envMapIntensity: 1.1 });
       case 'glass':
-        return phys({ color: '#dbe8ee', transparent: true, opacity: 0.25, roughness: 0.02, metalness: 0, side: THREE.DoubleSide, depthWrite: false, envMapIntensity: 1.2 });
+        // Shower screens / porthole: near-black pane blended as `reflection + 0.9 × view` (see
+        // windows/materials.ts) instead of a lit pale-blue wash over the tiles behind.
+        return phys({
+          color: '#0b0f12',
+          transparent: true,
+          opacity: 0.1,
+          roughness: 0.03,
+          metalness: 0,
+          reflectivity: 0.5,
+          blending: THREE.CustomBlending,
+          blendEquation: THREE.AddEquation,
+          blendSrc: THREE.OneFactor,
+          blendDst: THREE.OneMinusSrcAlphaFactor,
+          side: THREE.DoubleSide,
+          depthWrite: false,
+          envMapIntensity: 1.2,
+        });
       case 'carGlass':
         return phys({ color: '#1d2a33', transparent: true, opacity: 0.55, roughness: 0.03, metalness: 0.2, side: THREE.DoubleSide, depthWrite: false, envMapIntensity: 1.3 });
       case 'mirror':

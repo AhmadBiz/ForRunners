@@ -61,7 +61,7 @@ function clearGlass(high: boolean): THREE.MeshPhysicalMaterial {
       transmission: 1,
       thickness: 0, // flat pane: no refraction offset, no volume attenuation
       ior: GLASS_IOR,
-      roughness: 0.02,
+      roughness: 0.06, // a touch of micro-roughness: the room lights reflect as soft spots, not pinpoints
       metalness: 0,
       specularIntensity: 1,
       envMapIntensity: 1,
@@ -78,7 +78,7 @@ function clearGlass(high: boolean): THREE.MeshPhysicalMaterial {
     color: '#0b0f12',
     transparent: true,
     opacity: 0.12,
-    roughness: 0.03,
+    roughness: 0.06,
     metalness: 0,
     reflectivity: 0.5, // F0 = 0.04
     envMapIntensity: 1,

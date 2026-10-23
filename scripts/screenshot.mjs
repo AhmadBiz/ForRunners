@@ -172,9 +172,15 @@ async function main() {
     };
     const shot = async (name, assessment = '') => {
       const file = join(OUT, `${name}.png`);
+      const t0 = Date.now();
       await page.screenshot({ path: file, timeout: OP_TIMEOUT });
       screenshots.push(`screenshots/${name}.png`);
-      console.log(`  shot ${name}.png${assessment ? ' — ' + assessment : ''}`);
+      // draw calls / triangles of the last rendered frame (window.__house.gl is set by Scene.tsx)
+      const info = await page.evaluate(() => {
+        const r = window.__house?.gl?.info?.render;
+        return r ? `${r.calls} calls, ${r.triangles} tris` : 'n/a';
+      });
+      console.log(`  shot ${name}.png (${((Date.now() - t0) / 1000).toFixed(1)} s, ${info})${assessment ? ' — ' + assessment : ''}`);
     };
     const api = (fn, ...args) => page.evaluate(([f, a]) => new Function('a', `return (${f})(window.__house, ...a)`)(a), [fn, args]);
     // The scene mounts under <Suspense>; wait until the loading fallback is gone and a frame rendered.

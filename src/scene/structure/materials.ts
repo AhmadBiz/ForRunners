@@ -156,12 +156,20 @@ function createResolver(t: Sets): StructureMaterials {
       case K.garage:
         return std({ color: '#ece8df', roughness: 0.55 });
       case K.glass:
+        // Front-door glazing, same recipe as the windows' Eco-tier glass (windows/materials.ts):
+        // a near-black pane blended as `reflection + 0.9 × view` (One / OneMinusSrcAlpha), so the
+        // Fresnel sky reflection stays at full strength and nothing whitens the view behind.
         return phys({
-          color: '#cfdde8',
+          color: '#0b0f12',
           transparent: true,
-          opacity: 0.22,
-          roughness: 0.05,
+          opacity: 0.1,
+          roughness: 0.03,
           metalness: 0,
+          reflectivity: 0.5,
+          blending: THREE.CustomBlending,
+          blendEquation: THREE.AddEquation,
+          blendSrc: THREE.OneFactor,
+          blendDst: THREE.OneMinusSrcAlphaFactor,
           side: THREE.DoubleSide,
           depthWrite: false,
           envMapIntensity: 1,

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import type { RefObject } from 'react';
 import * as THREE from 'three';
+import { useThree } from '@react-three/fiber';
 import { useStore } from '../store/useStore';
 import { preloadAllTextures } from './materials';
 import { Lighting, Sky, applyIndoorEnvironment, useIndoorEnvironment } from './Lighting';
@@ -51,6 +52,20 @@ function IndoorReflections({ all, metals }: { all: GroupRef[]; metals: GroupRef[
 }
 
 /**
+ * Exposes the scene graph and the renderer on the debug API (window.__house.scene / .gl, see
+ * src/store/useStore.ts) so scripts/screenshot.mjs can report draw calls and profile the scene.
+ */
+function DebugHandles() {
+  const scene = useThree((s) => s.scene);
+  const gl = useThree((s) => s.gl);
+  useEffect(() => {
+    const house = (window as unknown as { __house?: Record<string, unknown> }).__house;
+    if (house) Object.assign(house, { scene, gl });
+  }, [scene, gl]);
+  return null;
+}
+
+/**
  * Composition root of the 3D world. Every sub-component reads HOUSE from src/data and the
  * store from src/store; this file only wires them together.
  */
@@ -80,6 +95,7 @@ export function Scene() {
       {mode === 'walk' ? <Player /> : <OrbitView />}
       <IndoorReflections all={all.current} metals={metals.current} />
       <Effects />
+      <DebugHandles />
     </>
   );
 }

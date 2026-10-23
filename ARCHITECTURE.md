@@ -49,7 +49,7 @@ written by the Player each frame, read by the minimap / HUD via requestAnimation
 `src/scene/input.ts` — mutable `input` object (forward / right / lookDX / lookDY / sprint / selectRequested) shared by
 keyboard+mouse handlers and the touch controls.
 
-`window.__house` — debug/automation API (`teleport`, `goToWindow`, `setCovering`, `setMode`, `start`, `state`, `player`, `windows`),
+`window.__house` — debug/automation API (`teleport`, `goToWindow`, `setCovering`, `setMode`, `start`, `state`, `player`, `windows`, plus `scene` / `gl` set by `Scene.tsx`),
 used by `scripts/screenshot.mjs`.
 
 ## Installation standard (MyKurtains)
@@ -63,8 +63,9 @@ and `coverings/Sheers.tsx` must model exactly this.
 
 ## Scene composition (`src/scene`)
 
-`Scene.tsx` wires: `<Environment>` (the HDRI with its sun disc clamped out of the IBL, see `useSkyEnvironment` in `Lighting.tsx`) + fog
-+ `<Lighting>` + `<RoomLights>` + `<Exterior>` + `<House>` + `<WindowMeshes>` + `<Furniture>` + (`<Player>` | `<OrbitView>`) + `<Effects>`.
+`Scene.tsx` wires: `<Sky>` (from `Lighting.tsx`: `scene.environment` = the HDRI's sun-clamped, ground-tinted *lighting* copy,
+`scene.background` = the sun-clamped copy, both rotated by `SKY_ROTATION_Y` so the measured sun lights the street elevation) + `fogExp2`
+(colour = the HDRI horizon band) + `<Lighting>` + `<RoomLights>` + `<Exterior>` + `<House>` + `<WindowMeshes>` + `<Furniture>` + (`<Player>` | `<OrbitView>`) + `<Effects>`.
 `App.tsx` owns the `<Canvas>` (ACES tone mapping, sRGB output, PCF shadow map; keyed on `quality` because `antialias` is a
 renderer constructor option — 'low' = MSAA and no post-processing, 'high' = post chain).
 
@@ -77,9 +78,9 @@ renderer constructor option — 'low' = MSAA and no post-processing, 'high' = po
 | `Furniture.tsx` (+ `furniture/`) | Low-poly props so each room reads as what it is (beds, sofas, kitchen, bathrooms, car in the garage…). Positions from `HOUSE.rooms` bounds. |
 | `Player.tsx` | First-person controller: pointer-lock mouse look, WASD/arrows, shift sprint, touch input via `input`, collision (`resolvePlayerCollisions`), stairs/ramps (`groundHeightAt`), teleport requests, level detection, centre raycast → `playerState.aimedWindowId`, click / E / touch-select → `selectWindow`. |
 | `OrbitView.tsx` | Dollhouse camera (drei `OrbitControls`) for the orbit mode. |
-| `Lighting.tsx` | Shadow-casting sun aligned with the HDRI's measured sun direction (exports `SUN_DIR` / `SUN_POSITION` / `SUN_TARGET`), hemisphere + ambient fill, `useSkyEnvironment()` (HDRI → sun-clamped equirect env map). |
+| `Lighting.tsx` | Shadow-casting sun aligned with the HDRI's measured sun direction rotated by `SKY_ROTATION_Y` (exports `SUN_DIR` / `SUN_POSITION` / `SUN_TARGET`), a weak hemisphere fill (no ambient), `useSkyEnvironment()` → `{ lighting, background }` (HDRI → sun-clamped equirects; the lighting copy has the rows below the horizon tinted to a lawn albedo and a slight warm bias), `<Sky/>`, and the indoor-reflection contract `useIndoorEnvironment()` / `indoorEnvironment(gl)` / `applyIndoorEnvironment(material, env)` / `INDOOR_ENV_INTENSITY` (a PMREM of three's RoomEnvironment, cached per renderer; `Scene.tsx` hands it to every furniture material and to the metal hardware of the house and windows). |
 | `RoomLights.tsx` | One warm point light per room (two recessed spots in the big rooms, ≤ 36 lights) with instanced ceiling fixtures. No shadows. |
-| `Effects.tsx` | Post-processing on 'high' only: N8AO + SMAA + ACES tone mapping + vignette + contrast (`@react-three/postprocessing`). |
+| `Effects.tsx` | Post-processing on 'high' only: N8AO (quality 'medium', half-res, radius 0.9 m walking / 2.5 m dollhouse) + SMAA + ACES tone mapping + a light vignette (`@react-three/postprocessing`). |
 
 ## UI (`src/ui`)
 
