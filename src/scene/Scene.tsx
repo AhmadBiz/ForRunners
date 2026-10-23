@@ -1,10 +1,10 @@
 import { useEffect, useRef } from 'react';
 import type { RefObject } from 'react';
 import * as THREE from 'three';
-import { useThree } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import { useStore } from '../store/useStore';
 import { preloadAllTextures } from './materials';
-import { Lighting, Sky, applyIndoorEnvironment, useIndoorEnvironment } from './Lighting';
+import { Lighting, Sky, applyIndoorEnvironment, applySkyEnvironment, useIndoorEnvironment } from './Lighting';
 import { RoomLights } from './RoomLights';
 import { House } from './House';
 import { Exterior } from './Exterior';
@@ -27,27 +27,35 @@ const FOG_DENSITY = 0.011;
 type GroupRef = RefObject<THREE.Group | null>;
 
 /**
- * Hands the indoor reflection environment (Lighting.tsx) to the materials that live inside the
- * house: every material under <Furniture/>, and the metal hardware (metalness ≥ 0.5: door levers,
- * blind slats and rails, patio-door pulls) under <House/> and <WindowMeshes/>. Walls, floors, window
- * frames, glass and the exterior keep the sky. Materials are shared per module, so each is switched
- * once; coverings mount new ones on every covering change, hence the `coverings` dependency.
+ * Assigns the reflection environments. Indoor (Lighting.tsx RoomEnvironment): every material under
+ * <Furniture/>, and the metal hardware (metalness ≥ 0.5: door levers, blind slats and rails,
+ * patio-door pulls) under <House/> and <WindowMeshes/>. Sky: every other MeshStandard / Physical
+ * material in the scene gets scene.environment as an explicit envMap (applySkyEnvironment), because
+ * three ignores a material's envMapIntensity while it relies on scene.environment — without this
+ * pass every wall, lawn and crown was lit by the sky at the same 0.9. Materials are shared per
+ * module, so each is switched once; coverings mount new ones on every covering change, hence the
+ * `coverings` dependency.
  */
-function IndoorReflections({ all, metals }: { all: GroupRef[]; metals: GroupRef[] }) {
+function Reflections({ all, metals }: { all: GroupRef[]; metals: GroupRef[] }) {
   const env = useIndoorEnvironment();
+  const scene = useThree((s) => s.scene);
   const coverings = useStore((s) => s.coverings);
   useEffect(() => {
-    const visit = (root: GroupRef, accept: (m: THREE.MeshStandardMaterial) => boolean) =>
-      root.current?.traverse((o) => {
+    const visit = (root: THREE.Object3D | null | undefined, accept: (m: THREE.MeshStandardMaterial) => boolean, apply: (m: THREE.MeshStandardMaterial) => void) =>
+      root?.traverse((o) => {
         const material = (o as THREE.Mesh).material as THREE.Material | THREE.Material[] | undefined;
         if (!material) return;
         for (const m of Array.isArray(material) ? material : [material]) {
-          if (m instanceof THREE.MeshStandardMaterial && accept(m)) applyIndoorEnvironment(m, env);
+          if (m instanceof THREE.MeshStandardMaterial && accept(m)) apply(m);
         }
       });
-    for (const r of all) visit(r, () => true);
-    for (const r of metals) visit(r, (m) => m.metalness >= 0.5);
-  }, [env, coverings, all, metals]);
+    const indoor = (m: THREE.MeshStandardMaterial) => applyIndoorEnvironment(m, env);
+    for (const r of all) visit(r.current, () => true, indoor);
+    for (const r of metals) visit(r.current, (m) => m.metalness >= 0.5, indoor);
+    // Sky (set by <Sky/> in a layout effect, so it is there by now) for everything still on the fallback.
+    const sky = scene.environment;
+    if (sky) visit(scene, (m) => m.envMap === null, (m) => applySkyEnvironment(m, sky));
+  }, [env, scene, coverings, all, metals]);
   return null;
 }
 
@@ -56,12 +64,12 @@ function IndoorReflections({ all, metals }: { all: GroupRef[]; metals: GroupRef[
  * src/store/useStore.ts) so scripts/screenshot.mjs can report draw calls and profile the scene.
  */
 function DebugHandles() {
-  const scene = useThree((s) => s.scene);
-  const gl = useThree((s) => s.gl);
-  useEffect(() => {
+  // Re-assigned every frame (two property writes): the Canvas is re-created on a quality change,
+  // and a one-shot effect left scripts racing against the remount.
+  useFrame(({ scene, gl }) => {
     const house = (window as unknown as { __house?: Record<string, unknown> }).__house;
-    if (house) Object.assign(house, { scene, gl });
-  }, [scene, gl]);
+    if (house && (house.scene !== scene || house.gl !== gl)) Object.assign(house, { scene, gl });
+  });
   return null;
 }
 
@@ -93,7 +101,7 @@ export function Scene() {
         <Furniture />
       </group>
       {mode === 'walk' ? <Player /> : <OrbitView />}
-      <IndoorReflections all={all.current} metals={metals.current} />
+      <Reflections all={all.current} metals={metals.current} />
       <Effects />
       <DebugHandles />
     </>

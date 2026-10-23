@@ -166,20 +166,34 @@ async function main() {
           }),
         n,
       );
+    const SETTLE_FRAMES = 3;
+    // Renderer statistics are accumulated over the settle frames (the post-processing chain resets
+    // gl.info on every pass, so a single read only ever sees the final screen quad).
     const settle = async (ms) => {
       await sleep(ms);
-      await frames(3);
+      await page.evaluate(() => {
+        const info = window.__house?.gl?.info;
+        if (info) {
+          info.autoReset = false;
+          info.reset();
+        }
+      });
+      await frames(SETTLE_FRAMES);
     };
     const shot = async (name, assessment = '') => {
       const file = join(OUT, `${name}.png`);
       const t0 = Date.now();
       await page.screenshot({ path: file, timeout: OP_TIMEOUT });
       screenshots.push(`screenshots/${name}.png`);
-      // draw calls / triangles of the last rendered frame (window.__house.gl is set by Scene.tsx)
-      const info = await page.evaluate(() => {
-        const r = window.__house?.gl?.info?.render;
-        return r ? `${r.calls} calls, ${r.triangles} tris` : 'n/a';
-      });
+      // per-frame draw calls / triangles, averaged over the settle frames (window.__house.gl is set by Scene.tsx)
+      const info = await page.evaluate((n) => {
+        const info = window.__house?.gl?.info;
+        if (!info) return 'n/a';
+        const r = info.render;
+        const s = `~${Math.round(r.calls / n)} calls, ~${Math.round(r.triangles / n)} tris per frame`;
+        info.autoReset = true;
+        return s;
+      }, SETTLE_FRAMES);
       console.log(`  shot ${name}.png (${((Date.now() - t0) / 1000).toFixed(1)} s, ${info})${assessment ? ' — ' + assessment : ''}`);
     };
     const api = (fn, ...args) => page.evaluate(([f, a]) => new Function('a', `return (${f})(window.__house, ...a)`)(a), [fn, args]);

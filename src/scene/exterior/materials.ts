@@ -110,7 +110,7 @@ export function useLeaf(): THREE.MeshStandardMaterial {
   const speckle = useMemo(() => leafSpeckleTexture(), []);
   const m = useMemo(
     () =>
-      new THREE.MeshStandardMaterial({ color: '#ffffff', vertexColors: true, map: speckle.map, normalMap: set.normalMap, roughnessMap: set.roughnessMap, normalScale: set.normalScale, roughness: 0.9, envMapIntensity: 1.3 }),
+      new THREE.MeshStandardMaterial({ color: '#ffffff', vertexColors: true, map: speckle.map, normalMap: set.normalMap, roughnessMap: set.roughnessMap, normalScale: set.normalScale, roughness: 0.9, envMapIntensity: 1.8 }),
     [set, speckle],
   );
   useEffect(
@@ -133,7 +133,7 @@ export function useLeafCards(): THREE.MeshStandardMaterial {
   const tex = useMemo(() => leafCardTexture(), []);
   const m = useMemo(
     () =>
-      new THREE.MeshStandardMaterial({ color: '#ffffff', vertexColors: true, map: tex, alphaTest: 0.5, side: THREE.DoubleSide, shadowSide: THREE.FrontSide, roughness: 0.9, envMapIntensity: 1.3 }),
+      new THREE.MeshStandardMaterial({ color: '#ffffff', vertexColors: true, map: tex, alphaTest: 0.5, side: THREE.DoubleSide, shadowSide: THREE.FrontSide, roughness: 0.9, envMapIntensity: 1.8 }),
     [tex],
   );
   useEffect(

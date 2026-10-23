@@ -225,6 +225,28 @@ export function applyIndoorEnvironment(material: THREE.MeshStandardMaterial, env
   }
 }
 
+const skyScaled = new WeakSet<THREE.Material>();
+
+/**
+ * Gives a material the sky as an EXPLICIT envMap. Needed because three (r16x+) ignores
+ * `material.envMapIntensity` on any material that falls back to `scene.environment`: the renderer
+ * overwrites the uniform with `scene.environmentIntensity` (WebGLRenderer.setProgram), so the
+ * per-material values tuned all over src/scene (paint 0.4, lawn 0.6, foliage 1.3, glass 1 …) only
+ * take effect once the texture is assigned directly. The intensity is scaled once by ENV_INTENSITY
+ * so a material at 1.0 matches what scene.environment gave it, and the rotation follows the sky.
+ */
+export function applySkyEnvironment(material: THREE.MeshStandardMaterial, sky: THREE.Texture): void {
+  if (material.envMap !== sky) {
+    material.envMap = sky;
+    material.envMapRotation.set(0, SKY_ROTATION_Y, 0);
+    material.needsUpdate = true;
+  }
+  if (!skyScaled.has(material)) {
+    material.envMapIntensity *= ENV_INTENSITY;
+    skyScaled.add(material);
+  }
+}
+
 // ---------------------------------------------------------------------------------------------
 // Sun
 // ---------------------------------------------------------------------------------------------
