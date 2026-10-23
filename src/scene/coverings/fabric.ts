@@ -54,17 +54,10 @@ export const quantizeOpen = (open: number, steps = 20) => Math.round(clamp01(fin
 // ---------------------------------------------------------------------------------------------
 // Props / placement
 // ---------------------------------------------------------------------------------------------
-/**
- * Props of the fabric coverings: the shared CoveringProps plus the room's ceiling height, which
- * the ceiling-mounted tracks need. `ceiling` is optional until the window component passes
- * LEVEL_BY_ID[level].ceilingHeight (see the report's requests); until then DEFAULT_CEILING is used.
- */
-export interface FabricProps extends CoveringProps {
-  /** Height of the room's ceiling above the floor (m). */
-  ceiling?: number;
-}
+/** Props of the fabric coverings (the shared CoveringProps, `ceiling` included). */
+export type FabricProps = CoveringProps;
 
-/** 9 ft — the ceiling height of the two main storeys (the basement is 8 ft). */
+/** 9 ft — the ceiling height of the two main storeys (the basement is 8 ft); fallback for a non-finite `ceiling`. */
 export const DEFAULT_CEILING = 2.743;
 
 /**
@@ -73,7 +66,7 @@ export const DEFAULT_CEILING = 2.743;
  */
 export function ceilingLocal(p: FabricProps): number {
   const height = safeSize(p.height);
-  const c = finite(p.ceiling ?? DEFAULT_CEILING, DEFAULT_CEILING) - finite(p.sill, 0) - height / 2;
+  const c = finite(p.ceiling, DEFAULT_CEILING) - finite(p.sill, 0) - height / 2;
   return c < height / 2 + 0.05 ? height / 2 + 0.25 : c;
 }
 

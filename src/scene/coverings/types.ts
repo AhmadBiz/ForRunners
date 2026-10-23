@@ -23,8 +23,12 @@ export interface CoveringProps {
   isDoor: boolean;
   state: WindowCoveringState;
   color: ColorOption;
-  /** Height of the room's ceiling above the floor (m) — needed by the ceiling-mounted tracks. */
-  ceiling?: number;
+  /**
+   * Height of the room's ceiling above the floor (m) — LEVEL_BY_ID[level].ceilingHeight. The
+   * ceiling-mounted tracks of curtains / sheers sit flush under it, i.e. at local
+   * y = ceiling − sill − height / 2.
+   */
+  ceiling: number;
 }
 
 /** Local y of the floor relative to the opening centre. */
