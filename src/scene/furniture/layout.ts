@@ -100,13 +100,16 @@ function kitchen(f: Frame): void {
   const ix = x1 + 1.7; // X ≈ 26.1 ft: ≥ 1.15 m walkway between the island's east end and the patio-door wall
   const iz = z1 + 0.34 + 0.425; // Z ≈ 14.4 ft
   const islandF = f.at(ix, 0, iz, S);
-  const rangeX = 0.71; // range bay 0.33–1.09 at the east end; doors fill the rest
-  P.baseCabinets(islandF, 2.2, 0.85, 0.9, { mat: 'cabinet', overhang: 0.3, drawers: true, doorSpan: [-1.1, 0.32], hole: { x: rangeX, w: 0.77, d: 0.68, z: 0.12 } });
+  // The range bay is at the WEST end (local x −1.09…−0.33; doors fill the rest): the patio-door
+  // viewpoint stands 1.65 m inside the door, beside the island's east half, so a hood over the
+  // east end would hang at eye level right next to the camera and fill the frame.
+  const rangeX = -0.71;
+  P.baseCabinets(islandF, 2.2, 0.85, 0.9, { mat: 'cabinet', overhang: 0.3, drawers: true, doorSpan: [-0.32, 1.1], hole: { x: rangeX, w: 0.77, d: 0.68, z: 0.12 } });
   P.rangeSlideIn(islandF.at(rangeX, 0, 0.12), 0.65);
   const ceil = LEVEL_BY_ID.ground.ceilingHeight;
   P.rangeHood(islandF.at(rangeX, 0, 0.1), 1.65, ceil);
-  P.fruitBowl(islandF.at(-0.55, 0.9, -0.3));
-  P.bookStack(islandF, [-0.05, 0.9, -0.42], 3, 0.12);
+  P.fruitBowl(islandF.at(0.55, 0.9, -0.3));
+  P.bookStack(islandF, [0.05, 0.9, -0.42], 3, 0.12);
   for (const dx of [-0.7, 0, 0.7]) P.stool(f.at(ix + dx, 0, iz - 0.425 - 0.22));
 }
 
