@@ -43,6 +43,12 @@ const LIGHT_COLOR = '#ffe3c0';
 /** Stairwell pendant: the bulb hangs this far (m) below the upper ceiling, 2.3 m over the up-landing. */
 const PENDANT_DROP = 1.98;
 /**
+ * Stairwell pendant intensity (cd): the strongest lamp in the house, it lights three storeys of
+ * void. The flush-mount formula does not apply (its nearest wall is 0.4 m away, the walls it is
+ * for are 1–4 m below); at 6 cd the landing walls beside it clipped to white.
+ */
+const PENDANT_INTENSITY = 4.4;
+/**
  * Point-light source height below the ceiling: low enough that each fixture leaves a soft halo on
  * the ceiling around it (a source flush with the ceiling cannot light it at all).
  */
@@ -111,7 +117,7 @@ function stairwellFixtures(room: Room): Fixture[] {
   const topCeiling = LEVEL_BY_ID[TOP_LEVEL].floorY + LEVEL_BY_ID[TOP_LEVEL].ceilingHeight;
   switch (room.level) {
     case 'ground':
-      return [{ kind: 'pendant', level: 'ground', mount: TOP_LEVEL, x: 12 * FT, z: 4.5 * FT, ceiling: topCeiling, intensity: intensityFor(3.0) * LIGHT_SCALE, distance }];
+      return [{ kind: 'pendant', level: 'ground', mount: TOP_LEVEL, x: 12 * FT, z: 4.5 * FT, ceiling: topCeiling, intensity: PENDANT_INTENSITY * LIGHT_SCALE, distance }];
     case 'basement':
       if (!UP_LANDING) return [];
       return [{ kind: 'flush', level: 'basement', mount: 'ground', x: 12 * FT, z: 7.5 * FT, ceiling: UP_LANDING.y - LANDING_T, intensity: intensityFor(1.5) * LIGHT_SCALE, distance }];
