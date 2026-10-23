@@ -24,8 +24,7 @@ import { fbm3, noise3 } from './noise';
 import type { Octave } from './noise';
 import { LAWN_CX, LAWN_CZ, lawnHeightAt } from './terrain';
 import { useDispose } from './hooks';
-import { LEAF_MAP_GAIN, PLANK_TILE, useBark, useBlackMetal, useFarTreeAtlas, useFarTrees, useHedgeLeaf, useLeaf, useLeafCards, useMulch, usePlanks, useRock } from './materials';
-import { usePbr } from '../materials';
+import { LEAF_MAP_GAIN, PLANK_TILE, useBark, useBlackMetal, useFarTreeAtlas, useFarTrees, useHedgeLeaf, useLeaf, useLeafCards, useMulch, usePlankTextures, usePlanks, useRock } from './materials';
 import { SUN_DIR } from '../Lighting';
 
 export function Landscaping() {
@@ -75,9 +74,9 @@ interface Shade {
   seed: number;
 }
 
-/** The solid cores are the shaded interior of a crown: the species' dark tone at 0.4–0.65×. */
+/** The solid cores are the shaded interior of a crown: the species' dark tone at 0.55–0.85× (the cards carry the lit tone). */
 function coreShade(s: Shade): Shade {
-  return { ...s, dark: s.dark.clone().multiplyScalar(0.4), light: s.dark.clone().multiplyScalar(0.65) };
+  return { ...s, dark: s.dark.clone().multiplyScalar(0.55), light: s.dark.clone().multiplyScalar(0.85) };
 }
 
 /** Colour of a foliage vertex / card: the species tones mixed by height and a slow colour noise, darkened below aoY. */
@@ -363,8 +362,8 @@ function addRoundTree(sink: Sink, t: TreeSpec, rnd: Rnd, seed: number): void {
       octaves: crownOctaves(R),
       shade,
       detail: t.lod ? 2 : 3,
-      cards: t.lod ? 150 : 700 + Math.floor(rnd() * 300),
-      cardSize: THREE.MathUtils.clamp(R * 0.45, 0.9, 1.3) * (t.lod ? 1.5 : 1),
+      cards: t.lod ? 300 : 700 + Math.floor(rnd() * 300),
+      cardSize: THREE.MathUtils.clamp(R * 0.45, 0.9, 1.3) * (t.lod ? 1.7 : 1),
       cardIn: -0.3 * R,
       cardOut: 0.35 * R,
       yMin: cy - 1.3 * R,
@@ -440,18 +439,22 @@ function addConifer(sink: Sink, t: TreeSpec, rnd: Rnd, seed: number): void {
       const a = rnd() * Math.PI * 2;
       const rho = r0 * (0.3 + rnd() * 0.45);
       const L = THREE.MathUtils.clamp(0.5 + 0.8 * r0, 0.6, 1.6) * (0.85 + rnd() * 0.3) * (t.lod ? 1.4 : 1);
-      const W = L * (0.3 + rnd() * 0.12);
+      const W = L * (0.38 + rnd() * 0.14);
       vD.set(Math.cos(a), 0, Math.sin(a));
       vT.set(-Math.sin(a), 0, Math.cos(a));
       const droop = THREE.MathUtils.degToRad(20 + rnd() * 15);
       vU.copy(vD).multiplyScalar(Math.cos(droop)).addScaledVector(UP_V, -Math.sin(droop)).normalize();
-      const roll = (rnd() - 0.5) * THREE.MathUtils.degToRad(40);
-      vN.crossVectors(vU, vT);
-      vV.copy(vT).multiplyScalar(Math.cos(roll)).addScaledVector(vN, Math.sin(roll)).normalize();
       vP.set(t.x + vD.x * rho, y + (rnd() - 0.5) * 0.15, t.z + vD.z * rho).addScaledVector(vU, L * 0.5);
       vS.copy(vD).addScaledVector(UP_V, slopeUp).normalize();
       leafColor(tmpColor, shade, vP.x, vP.y, vP.z, (tt - 0.12) / 0.88).multiplyScalar(0.55 + 0.45 * (rho / r0));
-      addCardUV(sink.cards, vP, vU, vV, L, W, 'needle', tmpColor, vS);
+      // two crossed planes per frond (near-horizontal spray + its vertical twin, both rolled ±25°):
+      // a lone horizontal card is a line from eye level, a lone vertical one a bar from above
+      const roll0 = (rnd() - 0.5) * THREE.MathUtils.degToRad(50);
+      for (const roll of [roll0, roll0 + Math.PI / 2]) {
+        vN.crossVectors(vU, vT);
+        vV.copy(vT).multiplyScalar(Math.cos(roll)).addScaledVector(vN, Math.sin(roll)).normalize();
+        addCardUV(sink.cards, vP, vU, vV, L, W, 'needle', tmpColor, vS);
+      }
     }
   }
 }
@@ -708,10 +711,10 @@ function Foliage() {
 // height jitter) beyond 60 m, and a continuous tree-line band behind them (two draw calls).
 // ---------------------------------------------------------------------------------------------
 const RINGS: [number, number][] = [
-  [64, 3],
-  [80, 4],
+  [60, 3],
+  [72, 4],
 ];
-const BAND_RADIUS = 92;
+const BAND_RADIUS = 84;
 const BAND_H = 6;
 const BAND_TILE = 12;
 const sunXZ = new THREE.Vector2(SUN_DIR.x, SUN_DIR.z).normalize();
@@ -947,9 +950,12 @@ function plankQuads(soup: TriangleSoup, cx: number, cz: number, along: Vec2, nor
 
 function Fence() {
   const planks = usePlanks();
-  const set = usePbr('weathered_brown_planks', { repeat: [1 / PLANK_TILE, 1 / PLANK_TILE], normalScale: 0.9 });
+  const set = usePlankTextures();
   // same weathered-cedar lift as usePlanks (the per-plank vertex colour varies it ±11 %)
-  const plankMat = useMemo(() => new THREE.MeshStandardMaterial({ ...set.props, color: COLORS.cedar, vertexColors: true, roughness: 0.8, envMapIntensity: 1.0 }), [set]);
+  const plankMat = useMemo(
+    () => new THREE.MeshStandardMaterial({ map: set.map, normalMap: set.normalMap, roughnessMap: set.roughnessMap, normalScale: new THREE.Vector2(0.9, 0.9), color: COLORS.cedar, vertexColors: true, roughness: 0.8, envMapIntensity: 1.0 }),
+    [set],
+  );
 
   const { plankGeom, frameGeom } = useMemo(() => {
     const rnd = mulberry32(31);

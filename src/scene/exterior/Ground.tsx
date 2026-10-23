@@ -261,6 +261,8 @@ export function Ground() {
     const cuts: Rect[] = [
       growRect(PLATFORMS.perron.bounds, 0.12),
       growRect(RAMPS.perron.bounds, PERRON_CLEAR),
+      // the basement wall under the porch's west face: no bed sliver between the porch and the lawn
+      [PLATFORMS.perron.bounds[0] - 1.0, PLATFORMS.perron.bounds[1] - 0.6, PLATFORMS.perron.bounds[0], PLATFORMS.perron.bounds[3] + 0.6],
       growRect([dx1, dz1 - WALL_T, dx2, dz2 + WALL_T], 0.1),
       growRect(walkRect, 0.1),
       growRect(RAMPS.balcon.bounds, 0.12),

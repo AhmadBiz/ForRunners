@@ -33,9 +33,12 @@ export function useMetreMaterial(id: TexId, tile: number | [number, number], o: 
   return usePbrMaterial(id, { ...o, repeat: [1 / tu, 1 / tv] });
 }
 
-/** Weathered cedar (deck, fence, posts): the dark plank map lifted ~1.5× and cooled to silver-brown. */
-export function usePlanks(o: MetreOptions = {}): THREE.MeshStandardMaterial {
-  return useMetreMaterial('weathered_brown_planks', PLANK_TILE, { color: COLORS.cedar, roughness: 0.8, envMapIntensity: 1.0, normalScale: 0.9, ...o });
+/** Weathered cedar (deck, fence, posts, stair): the lifted plank set (usePlankTextures) under the silver-brown tint. */
+export function usePlanks(): THREE.MeshStandardMaterial {
+  const set = usePlankTextures();
+  const m = useMemo(() => new THREE.MeshStandardMaterial({ map: set.map, normalMap: set.normalMap, roughnessMap: set.roughnessMap, normalScale: new THREE.Vector2(0.9, 0.9), color: COLORS.cedar, roughness: 0.8, envMapIntensity: 1.0 }), [set]);
+  useEffect(() => () => m.dispose(), [m]);
+  return m;
 }
 
 /** Flagstone paving (walkway, porch, patio, treads). */
@@ -293,6 +296,43 @@ export function useSlateTextures(tile: [number, number] = SLATE_TILE): SlateText
     },
     [textures],
   );
+  return textures;
+}
+
+export interface PlankTextures {
+  /** Brightened, slightly desaturated copy of weathered_brown_planks (PLANK_TILE per repeat). */
+  map: THREE.CanvasTexture;
+  normalMap: THREE.Texture;
+  roughnessMap: THREE.Texture;
+}
+
+/** weathered_brown_planks averages ~0.10 linear; real weathered cedar is 0.25–0.30 (silver-brown). */
+const PLANK_GAIN = 2.6;
+const PLANK_CHROMA = 0.7;
+
+/**
+ * The plank set with its albedo lifted 2.6× and 30 % of its orange chroma removed on a canvas:
+ * a back-lit fence or a deck under the roof otherwise showed no grain at all (0.10 × the shaded
+ * sky ≈ black). COLORS.cedar tints the result.
+ */
+export function usePlankTextures(): PlankTextures {
+  const set = usePbr('weathered_brown_planks', { repeat: [1 / PLANK_TILE, 1 / PLANK_TILE], normalScale: 0.9 });
+  const textures = useMemo(() => {
+    if (!set.map || !set.normalMap || !set.roughnessMap) throw new Error('weathered_brown_planks: incomplete texture set');
+    const canvas = imageToCanvas(set.map, null, (d) => {
+      for (let i = 0; i < d.length; i += 4) {
+        const r = d[i];
+        const g = d[i + 1];
+        const b = d[i + 2];
+        const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+        d[i] = Math.min(255, (lum + (r - lum) * PLANK_CHROMA) * PLANK_GAIN);
+        d[i + 1] = Math.min(255, (lum + (g - lum) * PLANK_CHROMA) * PLANK_GAIN);
+        d[i + 2] = Math.min(255, (lum + (b - lum) * PLANK_CHROMA) * PLANK_GAIN);
+      }
+    });
+    return { map: canvasTexture(canvas, true, [1 / PLANK_TILE, 1 / PLANK_TILE]), normalMap: set.normalMap, roughnessMap: set.roughnessMap };
+  }, [set]);
+  useEffect(() => () => textures.map.dispose(), [textures]);
   return textures;
 }
 

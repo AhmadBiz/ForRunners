@@ -54,10 +54,10 @@ export const COLORS = {
   /** Painted PVC / aluminium trim (fascia, soffit, columns): 70–75 % reflectance, not 85 %. */
   trim: '#e6e2d8',
   curb: '#d2d3d4',
-  /** Neutral-grey tint over the warm concrete maps (they landed at an olive-khaki under the warm sun). */
-  concrete: '#c9ccd0',
+  /** Cool tint that neutralises the warm concrete_wall_008 map (sRGB 141,133,112 → grey; it landed at an olive-khaki under the warm sun). */
+  concrete: '#c4cfe6',
   /** Bark-mulch beds (finding 3: ~15 % albedo, no longer a 4 % black rectangle). */
-  mulch: '#5a4636',
+  mulch: '#66503e',
   rock: '#8b857b',
   /** Split-face block of the porch body and the driveway retaining wall (over the procedural block map). */
   block: '#c9ccd0',

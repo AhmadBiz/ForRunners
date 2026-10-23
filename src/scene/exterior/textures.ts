@@ -422,24 +422,32 @@ export function leafCardTexture(): THREE.CanvasTexture {
     const k = 1 - shade * 0.35;
     return `rgb(${Math.round(v * 0.8 * k)},${Math.round(v * k)},${Math.round(v * 0.66 * k)})`;
   };
-  // three layers: deep (dark, long, sparse), middle, top (light, short, dense)
+  // three layers: deep (dark, long, sparse), middle, top (light, short, dense) — thick and
+  // dense enough near the spine to survive the 0.5 alpha test and its mipmaps as a fluffy
+  // branch, thinning toward the needle tips so the outline frays instead of ending in a bar
   for (const [width, pitch, reachK, shade, angle] of [
-    [2.0, 3.4, 1.0, 0.7, 62],
-    [1.8, 2.6, 0.82, 0.35, 55],
-    [1.5, 2.2, 0.62, 0.05, 48],
+    [3.2, 2.8, 1.0, 0.7, 64],
+    [2.8, 2.2, 0.82, 0.35, 56],
+    [2.2, 1.8, 0.62, 0.05, 48],
   ]) {
-    ctx.lineWidth = width;
     for (let x = x0 + 4; x < x1 - 6; x += pitch) {
       const t = (x - x0) / span;
       // needles shorten toward the tip (feathered) and are a little shorter at the base
       const taper = Math.sin(Math.PI * (0.15 + 0.85 * (1 - t))) * (0.75 + 0.25 * (1 - t));
-      const reach = 92 * reachK * taper * (0.7 + rnd() * 0.3);
+      const reach = 112 * reachK * taper * (0.7 + rnd() * 0.3);
       if (reach < 3) continue;
-      const rad = THREE.MathUtils.degToRad(angle + (rnd() - 0.5) * 16);
+      const rad = THREE.MathUtils.degToRad(angle + (rnd() - 0.5) * 18);
       for (const s of [-1, 1]) {
         ctx.strokeStyle = needleTone(shade + rnd() * 0.25);
+        // tapered needle: a thick inner half and a thin outer half
+        ctx.lineWidth = width;
         ctx.beginPath();
         ctx.moveTo(x, cy + s * 1.5);
+        ctx.lineTo(x + Math.cos(rad) * reach * 0.55, cy + s * Math.sin(rad) * reach * 0.55);
+        ctx.stroke();
+        ctx.lineWidth = width * 0.55;
+        ctx.beginPath();
+        ctx.moveTo(x + Math.cos(rad) * reach * 0.5, cy + s * Math.sin(rad) * reach * 0.5);
         ctx.lineTo(x + Math.cos(rad) * reach, cy + s * Math.sin(rad) * reach);
         ctx.stroke();
       }
