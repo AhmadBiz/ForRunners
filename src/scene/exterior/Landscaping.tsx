@@ -740,16 +740,15 @@ function FarTrees() {
       const hue = (rnd() - 0.5) * 0.16; // ±8 % between the red and blue channels: a hue shift of the tint
       c.setRGB(value * (1 + hue), value, value * (1 - hue));
       const [u0, u1] = variant.u;
+      // self-shadowed base: the bottom vertices at 0.6× (the lower third averages ~0.7×)
+      const lo: Vec3 = [c.r * 0.6, c.g * 0.6, c.b * 0.6];
+      const hi: Vec3 = [c.r, c.g, c.b];
       for (const a of [yaw, yaw + Math.PI / 3, yaw + (2 * Math.PI) / 3]) {
         const ax = (Math.cos(a) * w) / 2;
         const az = (Math.sin(a) * w) / 2;
         const n: Vec3 = [-az, 0, ax];
-        // lower third self-shadowed: the bottom vertices at 0.7×
-        soup.setColor(c.r * 0.7, c.g * 0.7, c.b * 0.7);
-        soup.triUV([x - ax, y, z - az], [x + ax, y, z + az], [x + ax, y + h, z + az], [u0, 0], [u1, 0], [u1, 1], n);
-        // (the top vertices of the second triangle at full value; the shared edge interpolates)
-        soup.setColor(c.r, c.g, c.b);
-        soup.triUV([x - ax, y, z - az], [x + ax, y + h, z + az], [x - ax, y + h, z - az], [u0, 0], [u1, 1], [u0, 1], n);
+        soup.triUVC([x - ax, y, z - az], [x + ax, y, z + az], [x + ax, y + h, z + az], [u0, 0], [u1, 0], [u1, 1], lo, lo, hi, n);
+        soup.triUVC([x - ax, y, z - az], [x + ax, y + h, z + az], [x - ax, y + h, z - az], [u0, 0], [u1, 1], [u0, 1], lo, hi, hi, n);
       }
     };
     for (const [radius, jitter] of RINGS) {
@@ -778,8 +777,11 @@ function FarTrees() {
       const u0 = (a0 * BAND_RADIUS) / BAND_TILE;
       const u1 = (a1 * BAND_RADIUS) / BAND_TILE;
       const lit = 0.55 + 0.45 * Math.max(0, -Math.cos((a0 + a1) / 2) * sunXZ.x - Math.sin((a0 + a1) / 2) * sunXZ.y);
-      bandSoup.setColor(lit, lit, lit);
-      bandSoup.quadUV([x0, y0, z0], [x1, y1, z1], [x1, y1 + BAND_H, z1], [x0, y0 + BAND_H, z0], [u0, 0], [u1, 0], [u1, 1], [u0, 1], [-Math.cos(a0), 0, -Math.sin(a0)]);
+      const lo: Vec3 = [lit * 0.7, lit * 0.7, lit * 0.7];
+      const hi: Vec3 = [lit, lit, lit];
+      const n: Vec3 = [-Math.cos(a0), 0, -Math.sin(a0)];
+      bandSoup.triUVC([x0, y0, z0], [x1, y1, z1], [x1, y1 + BAND_H, z1], [u0, 0], [u1, 0], [u1, 1], lo, lo, hi, n);
+      bandSoup.triUVC([x0, y0, z0], [x1, y1 + BAND_H, z1], [x0, y0 + BAND_H, z0], [u0, 0], [u1, 1], [u0, 1], lo, hi, hi, n);
     }
     return { trees: soup.build(), bandGeom: bandSoup.build() };
   }, []);

@@ -78,10 +78,10 @@ export class TriangleSoup {
     return this;
   }
 
-  private push(p: Vec3, uv: Vec2): void {
+  private push(p: Vec3, uv: Vec2, col: readonly [number, number, number] = this.color): void {
     this.pos.push(p[0], p[1], p[2]);
     this.uv.push(uv[0], uv[1]);
-    this.col.push(this.color[0], this.color[1], this.color[2]);
+    this.col.push(col[0], col[1], col[2]);
     if (this.normal) this.nor.push(this.normal[0], this.normal[1], this.normal[2]);
     else this.nor.push(0, 0, 0);
   }
@@ -92,6 +92,12 @@ export class TriangleSoup {
 
   /** Adds a triangle with explicit UVs, flipping its winding so the face normal agrees with `want`. */
   triUV(a: Vec3, b: Vec3, c: Vec3, ua: Vec2, ub: Vec2, uc: Vec2, want: Vec3): void {
+    this.triUVC(a, b, c, ua, ub, uc, this.color, this.color, this.color, want);
+  }
+
+  /** As triUV, with a colour per vertex (linear RGB; enables the colour attribute). */
+  triUVC(a: Vec3, b: Vec3, c: Vec3, ua: Vec2, ub: Vec2, uc: Vec2, ca: Vec3, cb: Vec3, cc: Vec3, want: Vec3): void {
+    this.useColor = true;
     const ux = b[0] - a[0];
     const uy = b[1] - a[1];
     const uz = b[2] - a[2];
@@ -103,13 +109,13 @@ export class TriangleSoup {
     const nz = ux * vy - uy * vx;
     const dot = nx * want[0] + ny * want[1] + nz * want[2];
     if (dot >= 0) {
-      this.push(a, ua);
-      this.push(b, ub);
-      this.push(c, uc);
+      this.push(a, ua, ca);
+      this.push(b, ub, cb);
+      this.push(c, uc, cc);
     } else {
-      this.push(a, ua);
-      this.push(c, uc);
-      this.push(b, ub);
+      this.push(a, ua, ca);
+      this.push(c, uc, cc);
+      this.push(b, ub, cb);
     }
   }
 
@@ -524,11 +530,6 @@ export function maximalRects(g: CellGrid): Rect[] {
 // Steps
 // ---------------------------------------------------------------------------------------------
 
-export interface Block {
-  center: Vec3;
-  size: Vec3;
-}
-
 export interface FlightLike {
   bounds: Rect;
   dir: '+x' | '-x' | '+z' | '-z';
@@ -556,16 +557,6 @@ export function stepRuns(f: FlightLike): { a: number; b: number; top: number }[]
     out.push({ a, b: a + run, top: f.y0 + (i + 1) * rise });
   }
   return out;
-}
-
-/** Steps of an exterior flight as solid blocks rising from `bottomY` (poured-concrete look). */
-export function stepBlocks(f: FlightLike, bottomY: number): Block[] {
-  const [x1, z1, x2, z2] = f.bounds;
-  const alongX = f.dir === '+x' || f.dir === '-x';
-  return stepRuns(f).map(({ a, b, top }) => ({
-    center: alongX ? [(a + b) / 2, (bottomY + top) / 2, (z1 + z2) / 2] : [(x1 + x2) / 2, (bottomY + top) / 2, (a + b) / 2],
-    size: alongX ? [b - a, top - bottomY, z2 - z1] : [x2 - x1, top - bottomY, b - a],
-  }));
 }
 
 /**
