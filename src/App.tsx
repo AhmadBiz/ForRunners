@@ -12,7 +12,7 @@ import { TouchControls } from './ui/TouchControls';
 import { LoadingFallback } from './ui/LoadingFallback';
 
 /** ACES filmic exposure, balanced with the sun / environment / room-light intensities in src/scene. */
-const EXPOSURE = 1.0;
+const EXPOSURE = 0.85;
 
 export default function App() {
   const quality = useStore((s) => s.quality);

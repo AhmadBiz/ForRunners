@@ -3,7 +3,14 @@
  * Headless visual smoke test: builds (if needed), serves dist/ with `vite preview`, drives the app
  * through the debug API (window.__house, see src/store/useStore.ts) and saves PNGs to screenshots/.
  *
- *   npm run screenshot
+ *   npm run screenshot                 — the full tour → screenshots/*.png
+ *   npm run screenshot -- --preview    — only public/preview.png: a 1200×750 shot of the <canvas>
+ *                                        (no HUD) from the exterior-front viewpoint in 'high' quality,
+ *                                        used as the thumbnail on the multi-house landing page.
+ *   QUALITY=low npm run screenshot     — run the tour in the other quality tier ('high' is the default).
+ *
+ * Under SwiftShader a frame of the realism build takes several seconds (4096 shadow map, 35 lights,
+ * post-processing), hence the long timeouts and the initial settle before the first shot.
  *
  * Exit code 1 when a page error or console error occurred (software-WebGL warnings are ignored).
  */
@@ -17,9 +24,16 @@ import { chromium } from 'playwright';
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = join(ROOT, 'dist');
 const OUT = join(ROOT, 'screenshots');
+const PREVIEW_FILE = join(ROOT, 'public', 'preview.png');
 const PORT = 4173;
 const URL = `http://localhost:${PORT}`;
-const VIEWPORT = { width: 1280, height: 800 };
+const PREVIEW_MODE = process.argv.includes('--preview');
+const VIEWPORT = PREVIEW_MODE ? { width: 1200, height: 750 } : { width: 1280, height: 800 };
+const QUALITY = PREVIEW_MODE ? 'high' : process.env.QUALITY === 'low' ? 'low' : 'high';
+/** Per-operation timeout: a software-GL frame can take > 5 s and a screenshot waits for one. */
+const OP_TIMEOUT = 240000;
+/** Exterior-front vantage (metres / radians) shared by the tour and the preview. */
+const EXTERIOR_FRONT = [-14, -1.07 + 1.68, 16, -Math.PI / 2 + 0.25];
 
 const TOUR = ['w-salon-n', 'd-patio', 'w-ch1-e', 'w-ch3-w', 'w-sdb2-n', 'w-familiale-e', 'w-escalier', 'w-cuisine-s'];
 const CHANGES = {
@@ -124,6 +138,7 @@ async function main() {
       browser = await chromium.launch(launchOpts);
     }
     const page = await browser.newPage({ viewport: VIEWPORT, deviceScaleFactor: 1 });
+    page.setDefaultTimeout(OP_TIMEOUT);
 
     page.on('console', (msg) => {
       const type = msg.type();
@@ -157,15 +172,45 @@ async function main() {
     };
     const shot = async (name, assessment = '') => {
       const file = join(OUT, `${name}.png`);
-      await page.screenshot({ path: file });
+      await page.screenshot({ path: file, timeout: OP_TIMEOUT });
       screenshots.push(`screenshots/${name}.png`);
       console.log(`  shot ${name}.png${assessment ? ' — ' + assessment : ''}`);
     };
     const api = (fn, ...args) => page.evaluate(([f, a]) => new Function('a', `return (${f})(window.__house, ...a)`)(a), [fn, args]);
+    // The scene mounts under <Suspense>; wait until the loading fallback is gone and a frame rendered.
+    const waitForScene = async () => {
+      await page.waitForFunction(() => !document.querySelector('.lf'), null, { timeout: OP_TIMEOUT });
+      await frames(2);
+    };
 
     // ---- start
+    await api('(h, q) => h.state().setQuality(q)', QUALITY);
     await api('(h) => h.start()');
-    await settle(1500);
+    await waitForScene();
+    // Software GL needs a long first settle (texture upload + shader compilation) or the shot is black.
+    await settle(8000);
+
+    if (PREVIEW_MODE) {
+      await api('(h, v) => h.teleport(...v)', EXTERIOR_FRONT);
+      await settle(3000);
+      mkdirSync(dirname(PREVIEW_FILE), { recursive: true });
+      // An element screenshot is a clip of the page, so the HUD overlaying the canvas would still be
+      // captured: hide every other element for the shot (visibility is inherited but overridable).
+      // Only the first <canvas> (the WebGL one) is kept — the minimap is a 2D canvas in the HUD.
+      await page.addStyleTag({ content: '* { visibility: hidden !important; }' });
+      await page.evaluate(() => document.querySelector('canvas')?.style.setProperty('visibility', 'visible', 'important'));
+      await frames(2);
+      await page.locator('canvas').first().screenshot({ path: PREVIEW_FILE, timeout: OP_TIMEOUT });
+      screenshots.push('public/preview.png');
+      console.log('  shot public/preview.png (canvas only, 1200×750, quality high)');
+      await browser.close().catch(() => {});
+      browser = undefined;
+      killServer();
+      const summary = { errors, warnings, screenshots, contextLost };
+      console.log(JSON.stringify(summary, null, 2));
+      return errors.length > 0 ? 1 : 0;
+    }
+
     await shot('01-start');
 
     // ---- window tour (default coverings)
@@ -206,7 +251,7 @@ async function main() {
     // ---- exterior views
     await api('(h) => h.setMode("walk")');
     await settle(300);
-    await api('(h) => h.teleport(-14, -1.07 + 1.68, 16, -Math.PI / 2 + 0.25)');
+    await api('(h, v) => h.teleport(...v)', EXTERIOR_FRONT);
     await settle(1500);
     await shot('exterior-front');
     await api('(h) => h.teleport(22, -1.07 + 1.68, 17, Math.PI / 2 - 0.3)');

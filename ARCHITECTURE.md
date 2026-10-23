@@ -4,7 +4,10 @@ Interactive 3D walkthrough of a two-storey house (with basement) transcribed fro
 plans, where the visitor chooses curtains / blinds / shutters for every window.
 
 Stack: **Vite + React 19 + TypeScript + three.js + @react-three/fiber 9 + @react-three/drei 10 + zustand 5**.
-No external 3D assets or textures — everything is procedural so the app deploys to Vercel as a static site.
+No external 3D models — geometry is procedural. Surfaces use a small CC0 PBR texture pack (`public/textures/<id>/`, manifest
+`src/data/textures.json`, helpers `src/scene/materials.ts` → `usePbr` / `usePbrMaterial`; most modules write UVs in metres and
+configure sets at `size: [1, 1]` so textures tile at real-world scale) and one HDRI sky (`public/hdri/sky_1k.hdr`), so the app
+still deploys to Vercel as a static site. Asset URLs go through `assetUrl()` = `import.meta.env.BASE_URL + path`.
 
 ## Coordinate system & units
 
@@ -60,7 +63,10 @@ and `coverings/Sheers.tsx` must model exactly this.
 
 ## Scene composition (`src/scene`)
 
-`Scene.tsx` wires: `<Sky>` + fog + `<Lighting>` + `<Exterior>` + `<House>` + `<WindowMeshes>` + `<Furniture>` + (`<Player>` | `<OrbitView>`).
+`Scene.tsx` wires: `<Environment>` (the HDRI with its sun disc clamped out of the IBL, see `useSkyEnvironment` in `Lighting.tsx`) + fog
++ `<Lighting>` + `<RoomLights>` + `<Exterior>` + `<House>` + `<WindowMeshes>` + `<Furniture>` + (`<Player>` | `<OrbitView>`) + `<Effects>`.
+`App.tsx` owns the `<Canvas>` (ACES tone mapping, sRGB output, PCF shadow map; keyed on `quality` because `antialias` is a
+renderer constructor option — 'low' = MSAA and no post-processing, 'high' = post chain).
 
 | File | Owner / responsibility |
 |---|---|
@@ -71,7 +77,9 @@ and `coverings/Sheers.tsx` must model exactly this.
 | `Furniture.tsx` (+ `furniture/`) | Low-poly props so each room reads as what it is (beds, sofas, kitchen, bathrooms, car in the garage…). Positions from `HOUSE.rooms` bounds. |
 | `Player.tsx` | First-person controller: pointer-lock mouse look, WASD/arrows, shift sprint, touch input via `input`, collision (`resolvePlayerCollisions`), stairs/ramps (`groundHeightAt`), teleport requests, level detection, centre raycast → `playerState.aimedWindowId`, click / E / touch-select → `selectWindow`. |
 | `OrbitView.tsx` | Dollhouse camera (drei `OrbitControls`) for the orbit mode. |
-| `Lighting.tsx` | Sun + hemisphere + ambient. |
+| `Lighting.tsx` | Shadow-casting sun aligned with the HDRI's measured sun direction (exports `SUN_DIR` / `SUN_POSITION` / `SUN_TARGET`), hemisphere + ambient fill, `useSkyEnvironment()` (HDRI → sun-clamped equirect env map). |
+| `RoomLights.tsx` | One warm point light per room (two recessed spots in the big rooms, ≤ 36 lights) with instanced ceiling fixtures. No shadows. |
+| `Effects.tsx` | Post-processing on 'high' only: N8AO + SMAA + ACES tone mapping + vignette + contrast (`@react-three/postprocessing`). |
 
 ## UI (`src/ui`)
 
@@ -89,3 +97,5 @@ Default language French with an English toggle (all labels through `useT(fr, en)
 * `npm run dev` / `npm run build` (tsc + vite) / `npm run preview`
 * `npx tsx scripts/validate-house.ts` — data sanity + reachability of every room and window viewpoint
 * `npm run screenshot` — Playwright + bundled Chromium: builds, serves, drives `window.__house`, saves PNGs to `screenshots/`
+  (`QUALITY=low` for the Éco tier). `npm run screenshot -- --preview` writes only `public/preview.png` (1200×750 canvas-only
+  exterior-front shot, the thumbnail on the multi-house landing page).
