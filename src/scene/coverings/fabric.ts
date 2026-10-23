@@ -201,6 +201,41 @@ export interface DrapeMaterialOptions {
    * buildWavePanel). Only for geometries that carry one — a geometry without it renders black.
    */
   vertexColors?: boolean;
+  /**
+   * The geometry is one continuous opaque sheet whose overall facing is the mesh's local +Z (a
+   * ripple-fold panel): direct light arriving from the other side of the sheet is cut (see
+   * applyOpaqueSheetMask).
+   */
+  opaqueSheet?: boolean;
+}
+
+/**
+ * A ripple-fold panel is one continuous sheet hanging in front of the window: direct light coming
+ * from behind it (the sun through the glass) cannot reach its room side. Per fragment, though, the
+ * walls of the folds face sideways (much more so in the stack, where the waves are tight), so their
+ * N·L towards a low sun behind the panel is positive and only the shadow map keeps them dark — and
+ * on those thin, steep walls the 1 cm shadow texels plus normal bias leak, drawing dashed bright
+ * lines down every fold. This mask multiplies each direct light by the side of the sheet it lies
+ * on, judged against the panel's MACRO normal (local +Z, flipped for back faces) instead of the
+ * fold's normal: light from the window side lights only the window side, light from the room side
+ * (room lamps, sun through another window) is unchanged. Indirect light is untouched.
+ */
+function applyOpaqueSheetMask(m: THREE.MeshPhysicalMaterial): void {
+  m.onBeforeCompile = (shader) => {
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vSheetNormal;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvSheetNormal = normalize( normalMatrix * vec3( 0.0, 0.0, 1.0 ) );');
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vSheetNormal;')
+      .replace(
+        '#include <lights_fragment_begin>',
+        THREE.ShaderChunk.lights_fragment_begin.replace(
+          /RE_Direct\( directLight,/g,
+          'directLight.color *= smoothstep( -0.03, 0.06, dot( directLight.direction, normalize( vSheetNormal ) * faceDirection ) );\n\t\tRE_Direct( directLight,',
+        ),
+      );
+  };
+  m.customProgramCacheKey = () => 'fabric-opaque-sheet';
 }
 
 /**
@@ -221,7 +256,7 @@ export function makeDrapeMaterial(o: DrapeMaterialOptions): THREE.MeshPhysicalMa
   // 0 on mid / light linen → 1 on the darkest colours; the velvet keeps its own treatment
   const dark = velvet ? 0 : 1 - smoothstep(0.1, 0.2, luminance(o.hex));
   const normal = velvet ? o.maps.normalScale.x : lerp(o.maps.normalScale.x, 1.6, dark);
-  return new THREE.MeshPhysicalMaterial({
+  const m = new THREE.MeshPhysicalMaterial({
     color: o.map ? '#ffffff' : o.hex,
     map: o.map ?? null,
     vertexColors: o.vertexColors ?? false,
@@ -237,6 +272,8 @@ export function makeDrapeMaterial(o: DrapeMaterialOptions): THREE.MeshPhysicalMa
     envMap: o.envMap ?? null,
     envMapIntensity: 0.6,
   });
+  if (o.opaqueSheet) applyOpaqueSheetMask(m);
+  return m;
 }
 
 /**
